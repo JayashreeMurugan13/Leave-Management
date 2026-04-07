@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layers, ChevronLeft } from 'lucide-react';
 import api from '../lib/api';
+import { useAuthStore } from '../store/useAuthStore';
 
 type Role = 'STUDENT' | 'PROFESSOR' | 'HOD' | 'PRINCIPAL';
 
@@ -9,6 +10,7 @@ const DEPARTMENTS = ['AIML', 'CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'ADMIN'
 
 export const RegisterPage = () => {
   const navigate = useNavigate();
+  const { login, isAuthenticated } = useAuthStore();
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -19,6 +21,10 @@ export const RegisterPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  if (isAuthenticated) {
+    navigate('/dashboard');
+    return null;
+  }
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -29,10 +35,12 @@ export const RegisterPage = () => {
     setErrorMsg('');
 
     try {
-      await api.post('/api/auth/register', form);
-      navigate('/login');
+      const res = await api.post('/api/auth/register', form);
+      if (res.data.success) {
+        navigate('/login');
+      }
     } catch (error: any) {
-      const msg = error.response?.data?.message || 'Registration failed. Try again.';
+      const msg = error.response?.data?.message || error.message || 'Registration failed. Try again.';
       setErrorMsg(msg);
     } finally {
       setIsLoading(false);

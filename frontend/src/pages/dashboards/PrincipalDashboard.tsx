@@ -1,36 +1,31 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, XCircle, Clock, AlertTriangle, Crown } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, AlertTriangle, Crown, Info } from 'lucide-react';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import api from '../../lib/api';
 
-const STATUS_BADGE: Record<string, string> = {
-  PENDING:  'bg-yellow-100 text-yellow-700',
-  APPROVED: 'bg-green-100 text-green-700',
-  REJECTED: 'bg-red-100 text-red-600',
-};
-
-const SECTION_STYLE: Record<string, { border: string; header: string; badge: string }> = {
-  STUDENT:   { border: 'border-sky-200',     header: 'bg-sky-50',     badge: 'bg-sky-100 text-sky-700' },
-  PROFESSOR: { border: 'border-emerald-200', header: 'bg-emerald-50', badge: 'bg-emerald-100 text-emerald-700' },
-  HOD:       { border: 'border-amber-200',   header: 'bg-amber-50',   badge: 'bg-amber-100 text-amber-700' },
+const ROLE_BADGE: Record<string, string> = {
+  STUDENT:   'bg-sky-100 text-sky-700',
+  PROFESSOR: 'bg-emerald-100 text-emerald-700',
+  HOD:       'bg-amber-100 text-amber-700',
 };
 
 export const PrincipalDashboard = () => {
-  const [stats, setStats]       = useState<any>(null);
+  const [stats, setStats]     = useState<any>(null);
   const [allLeaves, setAllLeaves] = useState<any[]>([]);
-  const [pending, setPending]   = useState<any[]>([]);
-  const [filter, setFilter]     = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
+  const [pending, setPending] = useState<any[]>([]);
   const [actionMsg, setActionMsg] = useState('');
+  const [deptFilter, setDeptFilter] = useState('ALL');
 
   const fetchData = async () => {
-    const [s, all, pend] = await Promise.all([
+    const [s, a, p] = await Promise.all([
       api.get('/api/leaves/stats',   { withCredentials: true }),
       api.get('/api/leaves/all',     { withCredentials: true }),
       api.get('/api/leaves/pending', { withCredentials: true }),
     ]);
     setStats(s.data.data);
-    setAllLeaves(all.data.data.leaves);
-    setPending(pend.data.data.leaves);
+    setAllLeaves(a.data.data.leaves);
+    setPending(p.data.data.leaves);
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -46,128 +41,111 @@ export const PrincipalDashboard = () => {
     }
   };
 
-  // Group leaves by applicant role then by department
-  const groupByDept = (leaves: any[]) => {
-    return leaves.reduce((acc: Record<string, any[]>, leave) => {
-      const dept = leave.user.department || 'Unknown';
-      if (!acc[dept]) acc[dept] = [];
-      acc[dept].push(leave);
-      return acc;
-    }, {});
-  };
+  // All unique departments
+  const departments = ['ALL', ...Array.from(new Set(allLeaves.map((l) => l.user?.department).filter(Boolean)))];
 
-  const displayed = filter === 'ALL' ? allLeaves : allLeaves.filter((l) => l.status === filter);
+  const filteredAll = deptFilter === 'ALL' ? allLeaves : allLeaves.filter((l) => l.user?.department === deptFilter);
 
-  const LeaveTable = ({ leaves, showActions }: { leaves: any[]; showActions: boolean }) => (
-    <table className="min-w-full divide-y divide-gray-100">
-      <thead className="bg-gray-50">
-        <tr>
-          {['Applicant', 'Type', 'Dates', 'Reason', 'Status', ...(showActions ? ['Actions'] : [])].map((h) => (
-            <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-gray-100 bg-white">
-        {leaves.map((leave) => (
-          <tr key={leave.id} className="hover:bg-gray-50 transition-colors">
-            <td className="px-4 py-3">
-              <p className="text-sm font-bold text-gray-900">{leave.user.name}</p>
-              <p className="text-xs text-gray-400">{leave.user.email}</p>
-            </td>
-            <td className="px-4 py-3 text-sm font-medium text-gray-700">{leave.leaveType}</td>
-            <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
-              {new Date(leave.startDate).toLocaleDateString()} – {new Date(leave.endDate).toLocaleDateString()}
-            </td>
-            <td className="px-4 py-3 text-sm text-gray-500 max-w-xs truncate">
-              {leave.reason?.replace(' [HOD_ESCALATED]', '')}
-            </td>
-            <td className="px-4 py-3">
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_BADGE[leave.status]}`}>
-                {leave.status}
-              </span>
-            </td>
-            {showActions && (
-              <td className="px-4 py-3">
-                {leave.status === 'PENDING' && (leave.canAct !== false) ? (
-                  <div className="flex gap-2">
-                    <button onClick={() => handleAction(leave.id, 'approve')}
-                      className="px-3 py-1 text-xs font-semibold bg-green-50 text-green-700 hover:bg-green-600 hover:text-white rounded-lg transition-colors">
-                      Approve
-                    </button>
-                    <button onClick={() => handleAction(leave.id, 'reject')}
-                      className="px-3 py-1 text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-lg transition-colors">
-                      Reject
-                    </button>
-                  </div>
-                ) : leave.status === 'PENDING' ? (
-                  <span className="text-xs text-gray-400 italic">Awaiting {leave.currentApproverRole}</span>
-                ) : null}
-              </td>
-            )}
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
+  // Stats by department
+  const deptStats = departments.filter((d) => d !== 'ALL').map((dept) => {
+    const dLeaves = allLeaves.filter((l) => l.user?.department === dept);
+    return {
+      dept,
+      pending:  dLeaves.filter((l) => l.status === 'PENDING').length,
+      approved: dLeaves.filter((l) => l.status === 'APPROVED').length,
+      rejected: dLeaves.filter((l) => l.status === 'REJECTED').length,
+    };
+  });
 
-  const RoleSection = ({ role, title }: { role: string; title: string }) => {
-    const roleLeaves = displayed.filter((l) => l.user.role === role);
-    const pendingRoleLeaves = pending.filter((l) => l.user.role === role);
-    const style = SECTION_STYLE[role];
-    const deptGroups = groupByDept(roleLeaves);
-    const pendingDeptGroups = groupByDept(pendingRoleLeaves);
-    const allDepts = Array.from(new Set([...Object.keys(deptGroups), ...Object.keys(pendingDeptGroups)]));
+  const escalated = pending.filter((l) => l.reason?.includes('HOD_ESCALATED'));
+  const hodLeaves  = pending.filter((l) => l.user?.role === 'HOD');
+  const myPending  = pending.filter((l) => l.canAct);
 
-    if (allDepts.length === 0) return null;
+  const trendData = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, i) => ({
+    month: m,
+    requests: allLeaves.filter((l) => new Date(l.createdAt).getMonth() === i).length,
+  }));
 
-    return (
-      <div className={`rounded-2xl border ${style.border} overflow-hidden`}>
-        <div className={`px-6 py-4 ${style.header} border-b ${style.border}`}>
-          <h3 className="font-bold text-gray-800 text-lg">{title}</h3>
-        </div>
-        <div className="divide-y divide-gray-100">
-          {allDepts.map((dept) => {
-            const deptPending = pendingDeptGroups[dept] || [];
-            const deptAll = deptGroups[dept] || [];
-            const showPending = deptPending.length > 0;
-            const showAll = deptAll.length > 0;
-
-            return (
-              <div key={dept} className="p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className={`text-xs font-bold px-3 py-1 rounded-full ${style.badge}`}>
-                    {dept}
-                  </span>
-                  {deptPending.length > 0 && (
-                    <span className="text-xs font-semibold text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded-full">
-                      {deptPending.length} pending
-                    </span>
-                  )}
-                </div>
-
-                {/* Pending actions first */}
-                {showPending && (
-                  <div className="mb-3 rounded-xl border border-yellow-100 overflow-hidden">
-                    <div className="px-4 py-2 bg-yellow-50 text-xs font-semibold text-yellow-700">
-                      ⏳ Awaiting Action
-                    </div>
-                    <LeaveTable leaves={deptPending} showActions={true} />
-                  </div>
-                )}
-
-                {/* All records */}
-                {showAll && filter !== 'PENDING' && (
-                  <div className="rounded-xl border border-gray-100 overflow-hidden">
-                    <LeaveTable leaves={deptAll} showActions={false} />
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+  const LeaveTable = ({ rows, title, badge }: { rows: any[]; title: string; badge?: string }) => (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+        <h3 className="font-bold text-gray-800">{title}</h3>
+        {badge && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">{badge}</span>}
       </div>
-    );
-  };
+      {rows.length === 0 ? (
+        <p className="px-6 py-6 text-sm text-gray-400">No requests.</p>
+      ) : (
+        <table className="min-w-full divide-y divide-gray-100">
+          <thead className="bg-gray-50">
+            <tr>
+              {['Applicant', 'Role', 'Dept', 'Type', 'Dates', 'Reason', 'Status', 'Actions'].map((h) => (
+                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {rows.map((leave) => {
+              const isEscalated = leave.reason?.includes('HOD_ESCALATED');
+              const canAct = leave.canAct ?? (leave.currentApproverRole === 'PRINCIPAL' && leave.status === 'PENDING');
+              return (
+                <tr key={leave.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3">
+                    <p className="text-sm font-bold text-gray-900">{leave.user?.name}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${ROLE_BADGE[leave.user?.role] ?? 'bg-gray-100 text-gray-600'}`}>
+                      {leave.user?.role}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-500">{leave.user?.department}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-gray-700">{leave.leaveType}</td>
+                  <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
+                    {new Date(leave.startDate).toLocaleDateString()} – {new Date(leave.endDate).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-500 max-w-[120px]">
+                    <p className="truncate">{leave.reason?.replace(' [HOD_ESCALATED]', '')}</p>
+                    {isEscalated && (
+                      <span className="text-xs text-amber-600 flex items-center gap-1">
+                        <AlertTriangle size={10} /> HOD absent
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      leave.status === 'APPROVED' ? 'bg-green-100 text-green-700' :
+                      leave.status === 'REJECTED' ? 'bg-red-100 text-red-600' :
+                      'bg-yellow-100 text-yellow-700'
+                    }`}>{leave.status}</span>
+                    {leave.status === 'PENDING' && leave.currentApproverRole && !canAct && (
+                      <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                        <Info size={10} /> Awaiting {leave.currentApproverRole}
+                      </p>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {canAct ? (
+                      <div className="flex gap-2">
+                        <button onClick={() => handleAction(leave.id, 'approve')}
+                          className="px-3 py-1.5 text-xs font-semibold bg-green-50 text-green-700 hover:bg-green-600 hover:text-white rounded-lg transition-colors">
+                          Approve
+                        </button>
+                        <button onClick={() => handleAction(leave.id, 'reject')}
+                          className="px-3 py-1.5 text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-lg transition-colors">
+                          Reject
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-300">—</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
@@ -176,8 +154,8 @@ export const PrincipalDashboard = () => {
           <Crown size={20} />
         </div>
         <div>
-          <h2 className="text-3xl font-extrabold text-brand-900 tracking-tight">Principal Dashboard</h2>
-          <p className="text-gray-500 mt-0.5">Department-wise leave visibility and control.</p>
+          <h2 className="text-3xl font-extrabold text-brand-900 tracking-tight">Principal Command Center</h2>
+          <p className="text-gray-500 mt-0.5">Full institution-wide leave visibility and control.</p>
         </div>
       </div>
 
@@ -188,12 +166,13 @@ export const PrincipalDashboard = () => {
         </div>
       )}
 
+      {/* Global Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
-          { label: 'Pending',       value: stats?.pending       ?? '—', color: 'text-yellow-600', icon: <Clock size={22} /> },
-          { label: 'Escalated',     value: stats?.escalated     ?? '—', color: 'text-amber-600',  icon: <AlertTriangle size={22} /> },
-          { label: 'Total Approved', value: stats?.totalApproved ?? '—', color: 'text-green-600', icon: <CheckCircle2 size={22} /> },
-          { label: 'Total Rejected', value: stats?.totalRejected ?? '—', color: 'text-red-500',   icon: <XCircle size={22} /> },
+          { label: 'Pending My Action', value: myPending.length,          color: 'text-yellow-600', icon: <Clock size={22} /> },
+          { label: 'Escalated',         value: escalated.length,          color: 'text-amber-600',  icon: <AlertTriangle size={22} /> },
+          { label: 'Total Approved',    value: stats?.totalApproved ?? '—', color: 'text-green-600', icon: <CheckCircle2 size={22} /> },
+          { label: 'Total Rejected',    value: stats?.totalRejected ?? '—', color: 'text-red-500',   icon: <XCircle size={22} /> },
         ].map((s) => (
           <div key={s.label} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center gap-4">
             <div className={`h-12 w-12 rounded-full bg-gray-50 ${s.color} flex items-center justify-center shrink-0`}>{s.icon}</div>
@@ -205,29 +184,132 @@ export const PrincipalDashboard = () => {
         ))}
       </div>
 
+      {/* Department-wise Stats */}
+      {deptStats.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h3 className="font-bold text-gray-800 mb-4">Department-wise Summary</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {deptStats.map((d) => (
+              <div key={d.dept} className="border border-gray-100 rounded-xl p-4">
+                <p className="text-sm font-bold text-gray-800 mb-2">{d.dept}</p>
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between"><span className="text-yellow-600">Pending</span><span className="font-bold">{d.pending}</span></div>
+                  <div className="flex justify-between"><span className="text-green-600">Approved</span><span className="font-bold">{d.approved}</span></div>
+                  <div className="flex justify-between"><span className="text-red-500">Rejected</span><span className="font-bold">{d.rejected}</span></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {actionMsg && (
-        <div className="bg-green-50 border border-green-200 text-green-700 rounded-xl px-4 py-3 text-sm font-medium">
+        <div className={`border rounded-xl px-4 py-3 text-sm font-medium ${actionMsg.includes('failed') || actionMsg.includes('permission') ? 'bg-red-50 border-red-200 text-red-700' : 'bg-green-50 border-green-200 text-green-700'}`}>
           {actionMsg}
         </div>
       )}
 
-      {/* Filter */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-gray-500">Filter:</span>
-        {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const).map((f) => (
-          <button key={f} onClick={() => setFilter(f)}
-            className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors ${
-              filter === f ? 'bg-brand-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}>
-            {f}
-          </button>
-        ))}
+      {/* Escalated — most urgent */}
+      {escalated.length > 0 && <LeaveTable rows={escalated} title="⚠ Escalated Requests (HOD Absent)" badge="Urgent" />}
+
+      {/* HOD leaves */}
+      {hodLeaves.length > 0 && <LeaveTable rows={hodLeaves} title="HOD Leave Requests" />}
+
+      {/* All leaves with dept filter */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h3 className="font-bold text-gray-800">All Leaves (Institution-wide)</h3>
+          <select className="input-field text-sm w-40" value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)}>
+            {departments.map((d) => <option key={d}>{d}</option>)}
+          </select>
+        </div>
+        {filteredAll.length === 0 ? (
+          <p className="px-6 py-6 text-sm text-gray-400">No leaves found.</p>
+        ) : (
+          <table className="min-w-full divide-y divide-gray-100">
+            <thead className="bg-gray-50">
+              <tr>
+                {['Applicant', 'Role', 'Dept', 'Type', 'Dates', 'Reason', 'Status', 'Actions'].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {filteredAll.map((leave) => {
+                const isEscalated = leave.reason?.includes('HOD_ESCALATED');
+                const canAct = leave.status === 'PENDING' && leave.currentApproverRole === 'PRINCIPAL';
+                return (
+                  <tr key={leave.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3 text-sm font-bold text-gray-900">{leave.user?.name}</td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${ROLE_BADGE[leave.user?.role] ?? 'bg-gray-100 text-gray-600'}`}>
+                        {leave.user?.role}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-500">{leave.user?.department}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-gray-700">{leave.leaveType}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
+                      {new Date(leave.startDate).toLocaleDateString()} – {new Date(leave.endDate).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-500 max-w-[120px]">
+                      <p className="truncate">{leave.reason?.replace(' [HOD_ESCALATED]', '')}</p>
+                      {isEscalated && <span className="text-xs text-amber-600">⚠ HOD absent</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                        leave.status === 'APPROVED' ? 'bg-green-100 text-green-700' :
+                        leave.status === 'REJECTED' ? 'bg-red-100 text-red-600' :
+                        'bg-yellow-100 text-yellow-700'
+                      }`}>{leave.status}</span>
+                      {leave.status === 'PENDING' && leave.currentApproverRole !== 'PRINCIPAL' && (
+                        <p className="text-xs text-gray-400 mt-0.5">Awaiting {leave.currentApproverRole}</p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {canAct ? (
+                        <div className="flex gap-2">
+                          <button onClick={() => handleAction(leave.id, 'approve')}
+                            className="px-3 py-1.5 text-xs font-semibold bg-green-50 text-green-700 hover:bg-green-600 hover:text-white rounded-lg transition-colors">
+                            Approve
+                          </button>
+                          <button onClick={() => handleAction(leave.id, 'reject')}
+                            className="px-3 py-1.5 text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-lg transition-colors">
+                            Reject
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-300">—</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
 
-      {/* Separate sections per role */}
-      <RoleSection role="STUDENT"   title="🎓 Student Leaves" />
-      <RoleSection role="PROFESSOR" title="📚 Professor Leaves" />
-      <RoleSection role="HOD"       title="👥 HOD Leaves" />
+      {/* Trend Chart */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <h3 className="font-bold text-gray-800 mb-6">University-Wide Leave Trend</h3>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={trendData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="colorPrincipal" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#4f46e5" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="month" axisLine={false} tickLine={false} />
+              <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <Tooltip />
+              <Area type="monotone" dataKey="requests" stroke="#4f46e5" fillOpacity={1} fill="url(#colorPrincipal)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
     </motion.div>
   );
 };

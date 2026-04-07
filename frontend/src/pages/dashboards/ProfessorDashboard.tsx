@@ -124,20 +124,14 @@ export const ProfessorDashboard = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex gap-2">
-                      {leave.canAct ? (
-                        <>
-                          <button
-                            onClick={() => handleAction(leave.id, 'approve')}
-                            className="px-3 py-1.5 text-xs font-semibold bg-green-50 text-green-700 hover:bg-green-600 hover:text-white rounded-lg transition-colors"
-                          >Approve</button>
-                          <button
-                            onClick={() => handleAction(leave.id, 'reject')}
-                            className="px-3 py-1.5 text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-lg transition-colors"
-                          >Reject</button>
-                        </>
-                      ) : (
-                        <span className="text-xs text-gray-400 italic">Awaiting {leave.currentApproverRole}</span>
-                      )}
+                      <button
+                        onClick={() => handleAction(leave.id, 'approve')}
+                        className="px-3 py-1.5 text-xs font-semibold bg-green-50 text-green-700 hover:bg-green-600 hover:text-white rounded-lg transition-colors"
+                      >Approve</button>
+                      <button
+                        onClick={() => handleAction(leave.id, 'reject')}
+                        className="px-3 py-1.5 text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-lg transition-colors"
+                      >Reject</button>
                     </div>
                   </td>
                 </tr>

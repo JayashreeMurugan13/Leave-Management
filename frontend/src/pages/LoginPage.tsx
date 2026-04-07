@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Layers,
@@ -59,18 +59,21 @@ const ROLES: {
 
 export const LoginPage = () => {
   const navigate = useNavigate();
-  const { login } = useAuthStore();
+  const { login, isAuthenticated } = useAuthStore();
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-
   const [showReset, setShowReset] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [resetNewPassword, setResetNewPassword] = useState('');
   const [resetMsg, setResetMsg] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated) navigate('/dashboard');
+  }, [isAuthenticated]);
 
   const activeRole = ROLES.find(({ role }) => role === selectedRole) ?? null;
 
@@ -108,8 +111,8 @@ export const LoginPage = () => {
       });
 
       if (response.data.success) {
-        const { user } = response.data.data;
-        login(user);
+        const { user, token } = response.data.data;
+        login(user, token);
         navigate('/dashboard');
       }
     } catch (error: any) {

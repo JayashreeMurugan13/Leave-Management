@@ -11,15 +11,36 @@ interface User {
 
 interface AuthState {
   user: User | null;
+  token: string | null;
   isAuthenticated: boolean;
-  login: (user: User) => void;
+  login: (user: User, token?: string) => void;
   logout: () => void;
 }
 
-// Pre-filled with a mock user to show off the UI without a backend API call yet
+const stored = (() => {
+  try {
+    const u = sessionStorage.getItem('auth_user');
+    const t = sessionStorage.getItem('auth_token');
+    return u ? { user: JSON.parse(u), token: t } : null;
+  } catch { return null; }
+})();
+
 export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  isAuthenticated: false,
-  login: (user) => set({ user, isAuthenticated: true }),
-  logout: () => set({ user: null, isAuthenticated: false }),
+  user: stored?.user ?? null,
+  token: stored?.token ?? null,
+  isAuthenticated: !!stored?.user,
+  login: (user, token) => {
+    try {
+      sessionStorage.setItem('auth_user', JSON.stringify(user));
+      sessionStorage.setItem('auth_token', token ?? '');
+    } catch {}
+    set({ user, token: token ?? null, isAuthenticated: true });
+  },
+  logout: () => {
+    try {
+      sessionStorage.removeItem('auth_user');
+      sessionStorage.removeItem('auth_token');
+    } catch {}
+    set({ user: null, token: null, isAuthenticated: false });
+  },
 }));

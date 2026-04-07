@@ -16,11 +16,12 @@ const signToken = (id: string) => {
 const createSendToken = (user: any, statusCode: number, res: Response, message: string) => {
   const token = signToken(user.id);
 
+  const isProduction = process.env.NODE_ENV === 'production';
   const cookieOptions = {
     expires: new Date(Date.now() + config.jwtCookieExpiresIn * 24 * 60 * 60 * 1000),
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict' as const,
+    secure: isProduction,
+    sameSite: 'lax' as const,
   };
 
   res.cookie('jwt', token, cookieOptions);
@@ -33,6 +34,25 @@ const createSendToken = (user: any, statusCode: number, res: Response, message: 
     token // we also send it so mobile clients could use it if cookies are tricky, but our frontend will use cookies
   });
 };
+
+export const register = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { name, email, password, role, department } = req.body;
+
+  if (!name || !email || !password || !role) {
+    return next(new AppError('Name, email, password and role are required', 400));
+  }
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) return next(new AppError('Email already in use', 400));
+
+  const hashedPassword = await bcrypt.hash(password, 12);
+
+  const user = await prisma.user.create({
+    data: { name, email, password: hashedPassword, role, department },
+  });
+
+  createSendToken(user, 201, res, 'Registration successful');
+});
 
 export const login = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { email, password, role } = req.body;
