@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #f0f4f8;
+  --color-brand-100: #d9e2ec;
+  --color-brand-200: #bcccdc;
+  --color-brand-300: #9fb3c8;
+  --color-brand-400: #829ab1;
+  --color-brand-500: #627d98;
+  --color-brand-600: #486581;
+  --color-brand-700: #334e68;
+  --color-brand-800: #243b53;
+  --color-brand-900: #102a43;
+
+  --color-primary-50: #ebf4ff;
+  --color-primary-100: #e1effe;
+  --color-primary-500: #3f83f8;
+  --color-primary-600: #1c64f2;
+  --color-primary-700: #1a56db;
+  --color-primary-800: #1e429f;
+  --color-primary-900: #233876;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-brand-50);
+    color: var(--color-brand-900);
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary-600 text-white font-medium py-2.5 px-4 rounded shadow-sm hover:bg-primary-700 hover:shadow transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed;
+  }
+  
+  .btn-secondary {
+    @apply bg-white border border-gray-300 text-gray-700 font-medium py-2.5 px-4 rounded shadow-sm hover:bg-gray-50 hover:text-gray-900 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  }
+
+  .input-field {
+    @apply w-full border border-gray-300 rounded px-3 py-2.5 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all;
+  }
+  
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-200 p-6;
+  }
+}

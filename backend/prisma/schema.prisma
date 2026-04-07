@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String   @id @default(uuid())
+  name             String
+  email            String   @unique
+  password         String
+  role             String   @default("STUDENT") // STUDENT, PROFESSOR, HOD, PRINCIPAL
+  department       String?
+  leaveBalance     Int      @default(12)
+  status           String   @default("ACTIVE") // ACTIVE, INACTIVE
+  
+  leaves           Leave[]
+  approvedLeaves   LeaveApproval[]
+  createdAuditLogs AuditLog[]
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Leave {
+  id                  String        @id @default(uuid())
+  userId              String
+  user                User          @relation(fields: [userId], references: [id])
+  startDate           DateTime
+  endDate             DateTime
+  leaveType           String        // CL, SL, EL
+  reason              String
+  status              String        @default("PENDING") // PENDING, APPROVED, REJECTED
+  currentApproverRole String?
+  documentUrl         String?
+  
+  approvals           LeaveApproval[]
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model LeaveApproval {
+  id         String      @id @default(uuid())
+  leaveId    String
+  leave      Leave       @relation(fields: [leaveId], references: [id])
+  approverId String
+  approver   User        @relation(fields: [approverId], references: [id])
+  action     String      // PENDING, APPROVED, REJECTED
+  comments   String?     
+  timestamp  DateTime    @default(now())
+}
+
+model Event {
+  id        String    @id @default(uuid())
+  title     String
+  date      DateTime
+  type      String    // EXAM, EVENT, HOLIDAY, RESTRICTED
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  metadata  Json?
+  timestamp DateTime @default(now())
+}
