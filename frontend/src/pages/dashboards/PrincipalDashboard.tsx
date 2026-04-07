@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, XCircle, Clock, AlertTriangle, Crown } from 'lucide-react';
-import axios from 'axios';
+import api from '../../lib/api';
 
 const STATUS_BADGE: Record<string, string> = {
   PENDING:  'bg-yellow-100 text-yellow-700',
@@ -24,9 +24,9 @@ export const PrincipalDashboard = () => {
 
   const fetchData = async () => {
     const [s, all, pend] = await Promise.all([
-      axios.get('/api/leaves/stats',   { withCredentials: true }),
-      axios.get('/api/leaves/all',     { withCredentials: true }),
-      axios.get('/api/leaves/pending', { withCredentials: true }),
+      api.get('/api/leaves/stats',   { withCredentials: true }),
+      api.get('/api/leaves/all',     { withCredentials: true }),
+      api.get('/api/leaves/pending', { withCredentials: true }),
     ]);
     setStats(s.data.data);
     setAllLeaves(all.data.data.leaves);
@@ -37,7 +37,7 @@ export const PrincipalDashboard = () => {
 
   const handleAction = async (id: string, action: 'approve' | 'reject') => {
     try {
-      await axios.put(`/api/leaves/${id}/${action}`, {}, { withCredentials: true });
+      await api.put(`/api/leaves/${id}/${action}`, {}, { withCredentials: true });
       setActionMsg(`Leave ${action}d successfully.`);
       await fetchData();
       setTimeout(() => setActionMsg(''), 3000);

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, XCircle, Clock, AlertTriangle, CalendarX, Plus, X, Trash2, CalendarOff } from 'lucide-react';
-import axios from 'axios';
+import api from '../../lib/api';
 
 const EVENT_TYPES = ['EXAM', 'RESTRICTED', 'HOLIDAY', 'EVENT'];
 
@@ -30,9 +30,9 @@ export const HodDashboard = () => {
 
   const fetchData = async () => {
     const [s, l, e] = await Promise.all([
-      axios.get('/api/leaves/stats',  { withCredentials: true }),
-      axios.get('/api/leaves/pending', { withCredentials: true }),
-      axios.get('/api/events',         { withCredentials: true }),
+      api.get('/api/leaves/stats',  { withCredentials: true }),
+      api.get('/api/leaves/pending', { withCredentials: true }),
+      api.get('/api/events',         { withCredentials: true }),
     ]);
     setStats(s.data.data);
     setLeaves(l.data.data.leaves);
@@ -43,7 +43,7 @@ export const HodDashboard = () => {
 
   const handleAction = async (id: string, action: 'approve' | 'reject') => {
     try {
-      await axios.put(`/api/leaves/${id}/${action}`, {}, { withCredentials: true });
+      await api.put(`/api/leaves/${id}/${action}`, {}, { withCredentials: true });
       setActionMsg(`Leave ${action}d successfully.`);
       await fetchData();
       setTimeout(() => setActionMsg(''), 3000);
@@ -57,7 +57,7 @@ export const HodDashboard = () => {
     setLeaveSubmitting(true);
     setLeaveMsg('');
     try {
-      await axios.post('/api/leaves/mark-leave', leaveForm, { withCredentials: true });
+      await api.post('/api/leaves/mark-leave', leaveForm, { withCredentials: true });
       setLeaveMsg('✅ Leave marked. Pending requests will auto-forward to Principal during your absence.');
       setTimeout(() => { setShowLeaveModal(false); setLeaveMsg(''); setLeaveForm({ startDate: '', endDate: '', reason: '' }); }, 2500);
     } catch (err: any) {
@@ -72,7 +72,7 @@ export const HodDashboard = () => {
     setSubmitting(true);
     setEventMsg('');
     try {
-      const res = await axios.post('/api/events', eventForm, { withCredentials: true });
+      const res = await api.post('/api/events', eventForm, { withCredentials: true });
       const { cancelledCount } = res.data.data;
       setEventMsg(
         cancelledCount > 0
@@ -90,7 +90,7 @@ export const HodDashboard = () => {
 
   const handleDeleteEvent = async (id: string) => {
     try {
-      await axios.delete(`/api/events/${id}`, { withCredentials: true });
+      await api.delete(`/api/events/${id}`, { withCredentials: true });
       await fetchData();
     } catch (err: any) {
       setActionMsg(err.response?.data?.message || 'Delete failed.');

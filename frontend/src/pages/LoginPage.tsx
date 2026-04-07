@@ -11,7 +11,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
-import axios from 'axios';
+import api from '../lib/api';
 
 type Role = 'STUDENT' | 'PROFESSOR' | 'HOD' | 'PRINCIPAL';
 
@@ -79,7 +79,7 @@ export const LoginPage = () => {
     setResetLoading(true);
     setResetMsg('');
     try {
-      await axios.post('/api/auth/reset-password', { email: resetEmail, newPassword: resetNewPassword });
+      await api.post('/api/auth/reset-password', { email: resetEmail, newPassword: resetNewPassword });
       setResetMsg('Password reset successfully! You can now login.');
       setTimeout(() => { setShowReset(false); setResetMsg(''); setResetEmail(''); setResetNewPassword(''); }, 2500);
     } catch (err: any) {
@@ -101,7 +101,7 @@ export const LoginPage = () => {
     setErrorMsg('');
 
     try {
-      const response = await axios.post('/api/auth/login', {
+      const response = await api.post('/api/auth/login', {
         email,
         password,
         role: selectedRole,

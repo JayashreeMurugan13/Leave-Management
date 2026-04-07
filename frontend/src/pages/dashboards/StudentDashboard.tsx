@@ -3,7 +3,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, FileCheck, AlertTriangle, Plus, X, CheckCircle2 } from 'lucide-react';
-import axios from 'axios';
+import api from '../../lib/api';
 
 const LEAVE_TYPES = ['CL', 'SL', 'EL'];
 
@@ -58,8 +58,8 @@ export const StudentDashboard = () => {
 
   const fetchData = async () => {
     const [s, l] = await Promise.all([
-      axios.get('/api/leaves/stats', { withCredentials: true }),
-      axios.get('/api/leaves/my', { withCredentials: true }),
+      api.get('/api/leaves/stats', { withCredentials: true }),
+      api.get('/api/leaves/my', { withCredentials: true }),
     ]);
     setStats(s.data.data);
     setLeaves(l.data.data.leaves);
@@ -72,7 +72,7 @@ export const StudentDashboard = () => {
     setSubmitting(true);
     setApplyMsg('');
     try {
-      const res = await axios.post('/api/leaves/apply', form, { withCredentials: true });
+      const res = await api.post('/api/leaves/apply', form, { withCredentials: true });
       setApplyMsg(res.data.message);
       await fetchData();
       setTimeout(() => { setShowModal(false); setApplyMsg(''); }, 2000);

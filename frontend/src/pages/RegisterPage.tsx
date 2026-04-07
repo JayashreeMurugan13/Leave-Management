@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layers, ChevronLeft } from 'lucide-react';
-import axios from 'axios';
+import api from '../lib/api';
 
 type Role = 'STUDENT' | 'PROFESSOR' | 'HOD' | 'PRINCIPAL';
 
@@ -29,7 +29,7 @@ export const RegisterPage = () => {
     setErrorMsg('');
 
     try {
-      await axios.post('/api/auth/register', form);
+      await api.post('/api/auth/register', form);
       navigate('/login');
     } catch (error: any) {
       const msg = error.response?.data?.message || 'Registration failed. Try again.';

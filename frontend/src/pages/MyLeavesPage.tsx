@@ -3,7 +3,7 @@ import { DashboardLayout } from '../layouts/DashboardLayout';
 import { CalendarHeart, Plus, X, AlertTriangle } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { AnimatePresence, motion } from 'framer-motion';
-import axios from 'axios';
+import api from '../lib/api';
 
 const LEAVE_TYPES = ['CL', 'SL', 'EL'];
 
@@ -56,8 +56,8 @@ export const MyLeavesPage = () => {
 
   const fetchData = async () => {
     const [l, s] = await Promise.all([
-      axios.get('/api/leaves/my',    { withCredentials: true }),
-      axios.get('/api/leaves/stats', { withCredentials: true }),
+      api.get('/api/leaves/my',    { withCredentials: true }),
+      api.get('/api/leaves/stats', { withCredentials: true }),
     ]);
     setLeaves(l.data.data.leaves);
     setHodAbsent(s.data.data.hodAbsent);
@@ -70,7 +70,7 @@ export const MyLeavesPage = () => {
     setSubmitting(true);
     setMsg('');
     try {
-      const res = await axios.post('/api/leaves/apply', form, { withCredentials: true });
+      const res = await api.post('/api/leaves/apply', form, { withCredentials: true });
       setMsg(res.data.message);
       await fetchData();
       setTimeout(() => { setShowModal(false); setMsg(''); setForm({ startDate: '', endDate: '', type: 'CL', reason: '' }); }, 2000);
