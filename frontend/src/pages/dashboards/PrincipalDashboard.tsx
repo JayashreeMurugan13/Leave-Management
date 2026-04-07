@@ -3,12 +3,6 @@ import { motion } from 'framer-motion';
 import { CheckCircle2, XCircle, Clock, AlertTriangle, Crown } from 'lucide-react';
 import axios from 'axios';
 
-const ROLE_BADGE: Record<string, string> = {
-  STUDENT:   'bg-sky-100 text-sky-700',
-  PROFESSOR: 'bg-emerald-100 text-emerald-700',
-  HOD:       'bg-amber-100 text-amber-700',
-};
-
 const STATUS_BADGE: Record<string, string> = {
   PENDING:  'bg-yellow-100 text-yellow-700',
   APPROVED: 'bg-green-100 text-green-700',

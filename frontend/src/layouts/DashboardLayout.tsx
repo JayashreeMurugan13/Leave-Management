@@ -1,6 +1,5 @@
-import React from 'react';
 import { useAuthStore } from '../store/useAuthStore';
-import { LayoutDashboard, CalendarDays, FileCheck, Users, LogOut, Bell, Search } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, FileCheck, LogOut, Bell, Search } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
 export const DashboardLayout = ({ children }: { children: React.ReactNode }) => {

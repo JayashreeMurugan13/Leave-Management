@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertCircle, FileCheck, AlertTriangle, Plus, X, CheckCircle2, Clock } from 'lucide-react';
+import { AlertCircle, FileCheck, AlertTriangle, Plus, X, CheckCircle2 } from 'lucide-react';
 import axios from 'axios';
 
 const LEAVE_TYPES = ['CL', 'SL', 'EL'];
