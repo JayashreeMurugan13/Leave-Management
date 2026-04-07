@@ -10,7 +10,7 @@ const DEPARTMENTS = ['AIML', 'CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'ADMIN'
 
 export const RegisterPage = () => {
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const [form, setForm] = useState({
     name: '',
     email: '',
